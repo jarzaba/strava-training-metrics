@@ -18,17 +18,13 @@ class StravaController extends Controller
     public function stravaAuth()
     {
 
-        /* $redirect_uri = env('CT_STRAVA_REDIRECT_URI');
-        $client_id = env('CT_STRAVA_CLIENT_ID');
-          return redirect('https://www.strava.com/oauth/authorize?client_id='. $client_id .'&response_type=code&redirect_uri='. $redirect_uri . '&scope=read_all,profile:read_all,activity:read_all&state=strava');
-
-        */
+        // Kutsutaan yksinkertaisesti Strava-paketista autentikointi-funktiota
         return Strava::authenticate();
     }
 
     public function getToken(Request $request)
     {
-        // Tokenit Strava APIin kytkeytymistä varten
+        // Haetaan tokenit Strava APIin kytkeytymistä varten
 
         $token = Strava::token($request->code);
         $access = $token->access_token;
@@ -49,10 +45,32 @@ class StravaController extends Controller
 
     public function fetchActivities()
     {
+
+        // Tsekataan onko access-token vanhentunut (validi 6 tuntia), jos ei, niin haetaan
+        // uusi refresh-tokenin avulla.
+
+        $user = Auth::user()->id;
+        $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
+        $expires = $expires[0]->expires_at;
+        $expires =  date($expires);
+        if (Carbon::now() > $expires) {
+
+            // Token has expired, generate new tokens using the currently stored user refresh token
+            $refresh = Token::select('refresh_token')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
+            $refresh = $refresh[0]->refresh_token;
+            $refresh = Strava::refreshToken($refresh);
+
+            // Update the users tokens
+            Token::where('users_id', $user)->update([
+                'access_token' => $refresh->access_token,
+                'refresh_token' => $refresh->refresh_token
+            ]);
+        }
+
         // Haetaan kaikki aktiviteetit Stravan APIsta.
         // APIn Rajoituksena on 200 aktiviteettia per haku,
         // joten silmukan avulla liitetään yhteen hakuja kunnes tulee tyhjä haku.
-        $user = Auth::user()->id;
+
         $access = Token::select('access_token')->where('users_id', $user)->latest()->get();
         $access = $access[0]->access_token;
         $activities = Strava::activities($access, 1, 200);
@@ -88,9 +106,9 @@ class StravaController extends Controller
 
     public function fetchNEWActivities()
     {
-        // Haetaan kaikki aktiviteetit Stravan APIsta.
-        // APIn Rajoituksena on 200 aktiviteettia per haku,
-        // joten silmukan avulla liitetään yhteen hakuja kunnes tulee tyhjä haku.
+        // Tsekataan onko access-token vanhentunut (validi 6 tuntia), jos ei, niin haetaan
+        // uusi refresh-tokenin avulla.
+
         $user = Auth::user()->id;
         $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
         $expires = $expires[0]->expires_at;
@@ -109,8 +127,15 @@ class StravaController extends Controller
             ]);
         }
 
+        // Haetaan tietokannasta viimeisin aktiviteetti
+
         $latestDownload = Activities::select('start_date')->where('activities_user_id', $user)->orderby('start_date', 'desc')->get();
         $latestDownload = $latestDownload[0]->start_date;
+
+        // Haetaan tietokannan viimeisintä aktiviteettia uudemmat Stravan APIn kautta
+        // APIn Rajoituksena on 200 aktiviteettia per haku,
+        // joten silmukan avulla liitetään yhteen hakuja kunnes tulee tyhjä haku.
+
         $access = Token::select('access_token')->where('users_id', $user)->latest()->get();
         $access = $access[0]->access_token;
         $activities = Strava::activities($access, 1, 200, $latestDownload);
@@ -120,7 +145,7 @@ class StravaController extends Controller
             $i++;
         }
 
-        // Tallennetaan kaikki aktiviteetit activities-tietokantaan
+        // Tallennetaan haetut aktiviteetit activities-tietokantaan
 
         foreach ($activities as $activity) {
             $activitiesToDb = new Activities;
@@ -143,23 +168,14 @@ class StravaController extends Controller
         return view('home')->with('tokenExists', true)->with('activities', $activities)->with('activities_fetched', true);
     }
 
-
-
-
-
-
-
-
     public function getActivity($id)
     {
-        //$activity = $request->activityId;
 
         $user = Auth::user()->id;
+
         $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
         $expires = $expires[0]->expires_at;
         $expires =  date($expires);
-
-
         if (Carbon::now() > $expires) {
 
             // Token has expired, generate new tokens using the currently stored user refresh token
@@ -173,6 +189,8 @@ class StravaController extends Controller
                 'refresh_token' => $refresh->refresh_token
             ]);
         }
+
+        // Haetaan valittu aktiviteetti Id:n avulla
 
         $access = Token::select('access_token')->where('users_id', $user)->latest()->get();
         $access = $access[0]->access_token;
