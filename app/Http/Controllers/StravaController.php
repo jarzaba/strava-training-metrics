@@ -162,7 +162,7 @@ class StravaController extends Controller
         }
 
 
-        $activities = Activities::where('activities_user_id', Auth::user()->id->get();
+        $activities = Activities::where('activities_user_id', Auth::user()->id)->get();
         //return view('strava_login')->with('access', $access);
 
         return view('home')->with('tokenExists', true)->with('activities', $activities)->with('activities_fetched', true);
