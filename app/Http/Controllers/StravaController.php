@@ -34,7 +34,7 @@ class StravaController extends Controller
         // Tallennetaan tokenit tokens-tietokantaan
 
         $tokenToDb = new Token;
-        $tokenToDb->users_id = Auth::id();
+        $tokenToDb->users_id = Auth::user()->id;
         $tokenToDb->access_token = $access;
         $tokenToDb->refresh_token = $refresh;
         $tokenToDb->expires_at = $expires_at;
@@ -49,7 +49,7 @@ class StravaController extends Controller
         // Tsekataan onko access-token vanhentunut (validi 6 tuntia), jos ei, niin haetaan
         // uusi refresh-tokenin avulla.
 
-        $user = Auth::id();
+        $user = Auth::user()->id;
         $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
         $expires = $expires[0]->expires_at;
         $expires =  date($expires);
@@ -96,8 +96,8 @@ class StravaController extends Controller
             $activitiesToDb->save();
         }
 
-
-        $activities = Activities::where('activities_user_id', Auth::id())->get();
+        $user = Auth::user()->id;
+        $activities = Activities::where('activities_user_id', $user)->get();
         //return view('strava_login')->with('access', $access);
 
         return view('home')->with('tokenExists', true)->with('activities', $activities)->with('activities_fetched', true);
@@ -109,7 +109,7 @@ class StravaController extends Controller
         // Tsekataan onko access-token vanhentunut (validi 6 tuntia), jos ei, niin haetaan
         // uusi refresh-tokenin avulla.
 
-        $user = Auth::id();
+        $user = Auth::user()->id;
         $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
         $expires = $expires[0]->expires_at;
         $expires =  date($expires);
@@ -162,7 +162,7 @@ class StravaController extends Controller
         }
 
 
-        $activities = Activities::where('activities_user_id', Auth::id())->get();
+        $activities = Activities::where('activities_user_id', Auth::user()->id->get();
         //return view('strava_login')->with('access', $access);
 
         return view('home')->with('tokenExists', true)->with('activities', $activities)->with('activities_fetched', true);
@@ -171,7 +171,7 @@ class StravaController extends Controller
     public function getActivity($id)
     {
 
-        $user = Auth::id();
+        $user = Auth::user()->id;
 
         $expires = Token::select('expires_at')->where('users_id', $user)->orderby('expires_at', 'desc')->get();
         $expires = $expires[0]->expires_at;
