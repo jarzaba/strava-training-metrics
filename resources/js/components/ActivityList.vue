@@ -23,7 +23,7 @@
             <a
               class="btn btn-primary btn-sm"
               role="button"
-              :href="'/strava/public/activity/' + item.activity_id"
+              :href="'/activity/' + item.activity_id"
             >map</a>
           </td>
         </tr>
