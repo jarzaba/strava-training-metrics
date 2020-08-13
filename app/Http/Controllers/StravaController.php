@@ -12,8 +12,15 @@ use Illuminate\Support\Facades\DB;
 
 use Strava;
 
+
+
 class StravaController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
     //
     public function stravaAuth()
     {
