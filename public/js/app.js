@@ -93522,7 +93522,7 @@ var render = function() {
                   staticClass: "btn btn-primary btn-sm",
                   attrs: {
                     role: "button",
-                    href: "/strava/public/activity/" + item.activity_id
+                    href: "/activity/" + item.activity_id
                   }
                 },
                 [_vm._v("map")]
